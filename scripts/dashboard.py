@@ -6,7 +6,6 @@ import pydeck as pdk
 import altair as alt
 
 
-st.title("✈️ Sistema de Monitorización")
 # Esto hace que el navegador pida datos nuevos cada 5 minutos
 st.empty() 
 st.sidebar.caption("Auto-refresco: cada 5 min")
