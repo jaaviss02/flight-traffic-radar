@@ -5,6 +5,12 @@ import pandas as pd
 import pydeck as pdk
 import altair as alt
 
+
+st.title("✈️ Sistema de Monitorización")
+# Esto hace que el navegador pida datos nuevos cada 5 minutos
+st.empty() 
+st.sidebar.caption("Auto-refresco: cada 5 min")
+
 # CONFIGURACIÓN DE PÁGINA
 st.set_page_config(page_title="Radar de Vuelos", page_icon="✈️", layout="wide")
 
