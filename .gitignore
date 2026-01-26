@@ -3,8 +3,6 @@ venv/
 .env
 
 # Base de datos (No se sube, el pipeline la creará en destino)
-*.duckdb
-*.duckdb.wal
 data/*
 !data/.gitkeep
 
