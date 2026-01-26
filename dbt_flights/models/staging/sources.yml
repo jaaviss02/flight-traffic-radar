@@ -1,0 +1,8 @@
+version: 2
+
+sources:
+  - name: opensky_api               # Nombre del grupo de fuentes
+    meta:
+      external_location: "../data/curated/*.parquet" # Ruta a tus archivos
+    tables:
+      - name: curated_flights       # El nombre que usaremos en SQL

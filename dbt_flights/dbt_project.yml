@@ -1,0 +1,16 @@
+name: 'vuelos_pipeline'      # Nombre interno del proyecto
+version: '1.0.0'
+config-version: 2
+
+profile: 'vuelos_profile'    # Este nombre debe coincidir con el que existe en el archivo de conexión.
+
+model-paths: ["models"]      # Directorio donde escribir los SQL
+seed-paths: ["seeds"]
+test-paths: ["tests"]
+
+models:
+  vuelos_pipeline:   
+    staging:
+      +materialized: table     # Crear tablas Silver
+    marts:
+      +materialized: table    # Crear tablas Gold

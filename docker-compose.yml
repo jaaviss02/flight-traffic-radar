@@ -1,0 +1,23 @@
+version: '3.8'
+
+services:
+  # Servicio 1: El Dashboard de Streamlit
+  dashboard:
+    build: .
+    container_name: radar_dashboard
+    ports:
+      - "8501:8501"
+    volumes:
+      - .:/app
+    depends_on:
+      - ingesta_datos # Esperar a que el maestro termine
+    command: streamlit run scripts/dashboard.py --server.address=0.0.0.0
+
+  # Servicio 2: Ejecuta el Pipeline Maestro directamente
+  ingesta_datos:
+    build: .
+    container_name: radar_maestro
+    volumes:
+      - .:/app
+    # Al terminar de ejecutar el script, el contenedor pasará a estado "Exited"
+    command: python scripts/pipeline_maestro.py

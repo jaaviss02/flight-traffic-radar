@@ -1,0 +1,18 @@
+# Entorno virtual
+venv/
+.env
+
+# Base de datos (No se sube, el pipeline la creará en destino)
+*.duckdb
+*.duckdb.wal
+data/*
+!data/.gitkeep
+
+# Python caches
+__pycache__/
+*.pyc
+
+# dbt logs y carpetas temporales
+dbt_flights/logs/
+dbt_flights/target/
+dbt_flights/dbt_packages/
