@@ -47,7 +47,13 @@ def run_pipeline():
     # Añadir timestamp de extracción
     df_final['extracted_at'] = pd.to_datetime(data['time'], unit='s')
 
-    # Guardar versión final de los datos en parquet
+    # Guardar versión inicial de los datos en parquet
+    os.makedirs("data/raw", exist_ok=True)
+    
+    timestamp_str = datetime.now().strftime("%Y%m%d_%H%M%S")
+    df.to_parquet(f"data/raw/raw_flights_{timestamp_str}.parquet")
+
+    # Guardar datos transformados en curated
     os.makedirs("data/curated", exist_ok=True)
     file_path = f"data/curated/flights_{timestamp_str}.parquet"
     df_final.to_parquet(file_path, index=False)

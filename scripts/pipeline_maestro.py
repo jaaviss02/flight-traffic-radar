@@ -6,6 +6,12 @@ from datetime import datetime
 
 base_dir = os.path.dirname(os.path.abspath(__file__))
 
+def create_folders():
+    folders = ["data/raw", "data/curated", "logs"]
+    for folder in folders:
+        os.makedirs(folder, exist_ok=True)
+        print(f"Directorio verificado: {folder}")
+
 def run_script(script_path):
     """Ejecuta un script de Python y espera a que termine."""
     print(f"Ejecutando: {script_path}...")
@@ -56,4 +62,5 @@ def main():
     print("\nAhora puedes refrescar tu Dashboard de Streamlit.")
 
 if __name__ == "__main__":
+    create_folders()
     main()
