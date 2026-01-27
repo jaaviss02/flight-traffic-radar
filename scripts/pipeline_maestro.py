@@ -24,24 +24,43 @@ def run_script(script_path):
         sys.exit(1)
 
 def run_dbt():
-    """Ejecuta los modelos de dbt."""
+    """Ejecuta dbt localizando el ejecutable en las rutas de Codespaces y GitHub."""
     print("Iniciando transformaciones en dbt...")
-    # Cambiamos al directorio de dbt para ejecutarlo
-    dbt_path = os.path.join(base_dir, "..", "dbt_flights")
     
-    # Ejecutamos dbt run apuntando al perfil local
+    dbt_project_path = os.path.abspath(os.path.join(base_dir, "..", "dbt_flights"))
+    
+    # Lista de rutas donde dbt suele esconderse en la nube
+    posibles_rutas = [
+        "/home/codespace/.local/lib/python3.12/site-packages/bin/dbt", # La que encontraste
+        "/home/runner/.local/bin/dbt",                                # GitHub Actions
+        "dbt"                                                         # Path global
+    ]
+    
+    dbt_exec = "dbt" 
+    for ruta in posibles_rutas:
+        if os.path.exists(ruta):
+            dbt_exec = ruta
+            break
+
+    print(f"Usando dbt desde: {dbt_exec}")
+
+    # Ejecutamos dbt deps primero para asegurar conectores
+    subprocess.run([dbt_exec, "deps", "--profiles-dir", "."], cwd=dbt_project_path)
+
+    # Ejecutamos el run
     result = subprocess.run(
-        ["dbt", "run", "--profiles-dir", "."], 
-        cwd=dbt_path, 
+        [dbt_exec, "run", "--profiles-dir", "."], 
+        cwd=dbt_project_path, 
         capture_output=True, 
         text=True
     )
     
     if result.returncode == 0:
-        print("dbt run completado exitosamente.")
+        print("dbt completado con éxito.")
         print(result.stdout)
     else:
         print("Error en dbt run:")
+        print(result.stdout)
         print(result.stderr)
         sys.exit(1)
 
