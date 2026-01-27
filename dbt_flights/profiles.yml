@@ -1,9 +1,12 @@
-vuelos_profile:             # El nombre en dbt_project.yml
-  target: dev              
+vuelos_profile:
+  target: dev
   outputs:
-    dev:                    # Nombre de configuración (desarrollo)
-      type: duckdb          # Tipo de base de datos
-      path: '../flights_history.duckdb'  # Dónde está el archivo
-      extensions:           # Extensiones útiles para DuckDB
+    dev:
+      type: duckdb
+      # Al ejecutar dbt DESDE la carpeta dbt_flights, 
+      # '../' sube a la raíz donde está tu archivo .duckdb
+      path: '../flights_history.duckdb'
+      extensions:
         - httpfs
         - parquet
+      threads: 1
