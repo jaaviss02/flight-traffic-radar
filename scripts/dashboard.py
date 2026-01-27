@@ -110,21 +110,42 @@ with c1:
     st.altair_chart(chart_paises, use_container_width=True)
 
 with c2:
-    st.subheader("☁️ Pasillos de Altitud")
+    st.subheader("☁️ Perfil Vertical de la Atmósfera")
     if not df_now.empty:
-        # LÓGICA DE ORDENACIÓN: Quitamos la 'm', ordenamos por número y luego mostramos
+        # 1. Crear el DataFrame con los datos actuales
         df_now['alt_low'] = (df_now['baro_altitude'] // 1000) * 1000
-        df_alt = df_now.groupby('alt_low').size().reset_index(name='cuenta')
+        df_actual = df_now.groupby('alt_low').size().reset_index(name='cuenta')
+
+        # 2. CREAR EL "ESQUELETO" DEL CIELO (0m a 14000m)
+        # Esto asegura que aparezcan todos los rangos aunque no haya aviones
+        cielo_completo = pd.DataFrame({'alt_low': [x * 1000 for x in range(15)]})
         
-        # Crear etiqueta limpia sin 'm' para que el eje Y sepa que es numérico
-        df_alt['Rango'] = df_alt['alt_low'].apply(lambda x: f"{int(x)} - {int(x)+1000}")
+        # Unimos los datos reales con el esqueleto
+        df_cielo = pd.merge(cielo_completo, df_actual, on='alt_low', how='left').fillna(0)
         
-        chart_alt = alt.Chart(df_alt).mark_bar(color="#ff7f0e").encode(
-            y=alt.Y('Rango:N', sort=alt.EncodingSortField(field="alt_low", order="ascending"), title="Altitud (Metros)"),
-            x=alt.X('cuenta:Q', title="Aeronaves"),
-            tooltip=['Rango', 'cuenta']
-        ).properties(height=350)
+        # 3. Crear etiquetas visuales
+        df_cielo['Rango'] = df_cielo['alt_low'].apply(lambda x: f"{int(x)}m - {int(x)+1000}m")
+
+        # 4. GRÁFICO TIPO "CIELO REAL" (Ordenado de abajo a arriba)
+        chart_alt = alt.Chart(df_cielo).mark_bar(
+            color="#4A90E2", # Un azul cielo
+            cornerRadiusTopRight=3,
+            cornerRadiusBottomRight=3
+        ).encode(
+            # Ordenamos de forma ascendente (0 abajo, 14000 arriba)
+            y=alt.Y('Rango:N', 
+                    sort=alt.EncodingSortField(field="alt_low", order="ascending"), 
+                    title="Altitud (Nivel del mar → Espacio)"),
+            x=alt.X('cuenta:Q', 
+                    title="Nº Aeronaves", 
+                    axis=alt.Axis(tickMinStep=1, format='d')),
+            tooltip=[alt.Tooltip('Rango', title='Altitud'), alt.Tooltip('cuenta', title='Aviones')]
+        ).properties(height=500)
+
+        # Añadimos una línea decorativa que represente el horizonte
         st.altair_chart(chart_alt, use_container_width=True)
+    else:
+        st.info("Esperando datos de telemetría para generar el perfil de altitud.")
 
 # --- SECCIÓN 3: TRAYECTORIAS INCREMENTALES ---
 st.divider()
