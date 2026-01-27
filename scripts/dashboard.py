@@ -95,51 +95,52 @@ with col_alerts:
 
 st.divider()
 
-# --- SECCIÓN 2: ANÁLISIS (ORDENACIÓN CORREGIDA) ---
+# --- SECCIÓN 2: ANÁLISIS ---
 st.header("📊 Análisis de Tráfico")
 c1, c2 = st.columns(2)
 
 with c1:
     st.subheader("🔝 Top 10 Países")
-    df_paises = df_now.groupby('origin_country').size().reset_index(name='vuelos').sort_values('vuelos', ascending=False).head(10)
+    # Agregamos y renombramos la columna para el gráfico
+    df_paises = df_now.groupby('origin_country').size().reset_index(name='Vuelos')
+    df_paises = df_paises.rename(columns={'origin_country': 'País de Origen'})
+    df_paises = df_paises.sort_values('Vuelos', ascending=False).head(10)
+
     chart_paises = alt.Chart(df_paises).mark_bar(color="#1f77b4").encode(
-        x=alt.X('origin_country:N', sort='-y'),
-        y='vuelos:Q',
-        tooltip=['origin_country', 'vuelos']
-    ).properties(height=350)
+        x=alt.X('País de Origen:N', sort='-y'),
+        # axis=alt.Axis(format='d') asegura que la escala sea de números enteros
+        y=alt.Y('Vuelos:Q', title="Nº de Vuelos", axis=alt.Axis(tickMinStep=1, format='d')),
+        tooltip=['País de Origen', 'Vuelos']
+    ).properties(height=500)
     st.altair_chart(chart_paises, use_container_width=True)
 
 with c2:
-    st.subheader("☁️ Areonaves por altitud")
+    st.subheader("☁️ Perfil Vertical de la Atmósfera")
     if not df_now.empty:
-        # 1. Agrupamos y creamos el esqueleto (0m a 15000m)
         df_now['alt_low'] = (df_now['baro_altitude'] // 1000) * 1000
-        df_actual = df_now.groupby('alt_low').size().reset_index(name='cuenta')
+        df_actual = df_now.groupby('alt_low').size().reset_index(name='Aeronaves')
         
-        # Rango de 0 a 15 para cubrir hasta los 15.000m
         cielo_completo = pd.DataFrame({'alt_low': [x * 1000 for x in range(16)]})
         df_cielo = pd.merge(cielo_completo, df_actual, on='alt_low', how='left').fillna(0)
         df_cielo['Rango'] = df_cielo['alt_low'].apply(lambda x: f"{int(x)}m - {int(x)+1000}m")
 
-        # 2. GRÁFICO ORIENTADO AL CIELO
         chart_alt = alt.Chart(df_cielo).mark_bar(
             color="#4A90E2", 
             cornerRadiusTopRight=3,
             cornerRadiusBottomRight=3
         ).encode(
-            # CAMBIO CLAVE: order="descending" pone los números pequeños abajo
             y=alt.Y('Rango:N', 
                     sort=alt.EncodingSortField(field="alt_low", order="descending"), 
-                    title="Altitud"),
-            x=alt.X('cuenta:Q', 
-                    title="Nº Aeronaves"),
-            tooltip=['Rango', 'cuenta']
-        ).properties(height=600)
+                    title="Altitud (Nivel del mar → Espacio)"),
+            # axis=alt.Axis(format='d') evita que salgan 0.5, 1.5 aeronaves
+            x=alt.X('Aeronaves:Q', 
+                    title="Nº de Aeronaves", 
+                    axis=alt.Axis(tickMinStep=1, format='d')),
+            tooltip=['Rango', 'Aeronaves']
+        ).properties(height=500)
 
         st.altair_chart(chart_alt, use_container_width=True)
-    else:
-        st.info("Sin datos de altitud en este snapshot.")
-
+        
 # --- SECCIÓN 3: TRAYECTORIAS INCREMENTALES ---
 st.divider()
 st.header("🕵️ Rastreador de Trayectorias")
