@@ -115,7 +115,7 @@ with c1:
     st.altair_chart(chart_paises, use_container_width=True)
 
 with c2:
-    st.subheader("☁️ Perfil Vertical de la Atmósfera")
+    st.subheader("☁️ Aeronaves agrupadas por altitud de vuelo")
     if not df_now.empty:
         df_now['alt_low'] = (df_now['baro_altitude'] // 1000) * 1000
         df_actual = df_now.groupby('alt_low').size().reset_index(name='Aeronaves')
@@ -131,7 +131,7 @@ with c2:
         ).encode(
             y=alt.Y('Rango:N', 
                     sort=alt.EncodingSortField(field="alt_low", order="descending"), 
-                    title="Altitud (Nivel del mar → Espacio)"),
+                    title="Altitud"),
             # axis=alt.Axis(format='d') evita que salgan 0.5, 1.5 aeronaves
             x=alt.X('Aeronaves:Q', 
                     title="Nº de Aeronaves", 
