@@ -1,7 +1,7 @@
 name: Actualizar Radar de Vuelos
 on:
   schedule:
-    - cron: '5,15,30,45 * * * *'
+    - cron: '5,15,25,35,45,55 * * * *'
   workflow_dispatch:      # Permite ejecutarlo manualmente desde GitHub
 
 jobs:
