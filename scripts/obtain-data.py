@@ -6,6 +6,8 @@ import urllib3
 
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
+os.makedirs("data/raw", exist_ok=True)
+os.makedirs("data/curated", exist_ok=True)
 
 def run_pipeline():
     timestamp_str = datetime.now().strftime("%Y%m%d_%H%M%S")
