@@ -12,15 +12,14 @@ st.set_page_config(page_title="Radar de Vuelos", page_icon="✈️", layout="wid
 base_path = os.path.dirname(os.path.abspath(__file__))
 db_path = os.path.join(base_path, '..', 'flights_history.duckdb')
 
-# Función para obtener conexión (evita bloqueos)
 def get_connection():
     return duckdb.connect(db_path, read_only=True)
 
 con = get_connection()
 
 # --- SIDEBAR: FILTROS ---
-st.sidebar.title("✈️ Controles")
-st.sidebar.caption("Auto-refresco: cada 5 min")
+st.sidebar.title("Controles")
+st.sidebar.caption("Auto-refresco: cada 30 min")
 
 try:
     paises_df = con.execute("SELECT DISTINCT origin_country FROM stg_flights WHERE origin_country IS NOT NULL ORDER BY 1").df()
@@ -51,7 +50,7 @@ st.divider()
 m1, m2, m3, m4 = st.columns(4)
 with m1: st.metric("Aeronaves Activas", len(df_now))
 with m2: st.metric("✈️ En Vuelo", len(df_now[df_now['on_ground'] == False]))
-with m3: st.metric("地面 En Tierra", len(df_now[df_now['on_ground'] == True]))
+with m3: st.metric("🛫 En Tierra", len(df_now[df_now['on_ground'] == True])) # Icono corregido
 with m4:
     vel_med = round(df_now[df_now['on_ground'] == False]['velocity_kmh'].mean(), 1) if not df_now.empty else 0
     st.metric("💨 Velocidad Media", f"{vel_med} km/h")
@@ -59,15 +58,16 @@ with m4:
 col_map, col_alerts = st.columns([2, 1])
 
 with col_map:
+    # Definición de colores: Naranja para tierra, Azul para vuelo
     df_now['color_r'] = df_now['on_ground'].apply(lambda x: 255 if x else 0)
-    df_now['color_g'] = 128
+    df_now['color_g'] = df_now['on_ground'].apply(lambda x: 120 if x else 100)
     df_now['color_b'] = df_now['on_ground'].apply(lambda x: 0 if x else 255)
 
     layer_puntos = pdk.Layer(
         "ScatterplotLayer",
         df_now,
         get_position='[longitude, latitude]',
-        get_color='[color_r, color_g, color_b, 160]',
+        get_color='[color_r, color_g, color_b, 180]',
         get_radius=30000,
         pickable=True, 
     )
@@ -85,6 +85,14 @@ with col_map:
         on_select="rerun",
         selection_mode="single-object"
     )
+    
+    # LEYENDA DE COLORES
+    st.markdown("""
+        <div style="display: flex; gap: 20px; justify-content: center; margin-top: -10px;">
+            <span style="color: #0064FF;">🔵 <b>En Vuelo</b></span>
+            <span style="color: #FF7800;">🟠 <b>En Tierra</b></span>
+        </div>
+    """, unsafe_allow_html=True)
 
 with col_alerts:
     st.subheader("⚠️ Alertas de Seguridad")
@@ -101,21 +109,19 @@ c1, c2 = st.columns(2)
 
 with c1:
     st.subheader("🔝 Top 10 Países")
-    # Agregamos y renombramos la columna para el gráfico
     df_paises = df_now.groupby('origin_country').size().reset_index(name='Vuelos')
     df_paises = df_paises.rename(columns={'origin_country': 'País de Origen'})
     df_paises = df_paises.sort_values('Vuelos', ascending=False).head(10)
 
     chart_paises = alt.Chart(df_paises).mark_bar(color="#1f77b4").encode(
         x=alt.X('País de Origen:N', sort='-y'),
-        # axis=alt.Axis(format='d') asegura que la escala sea de números enteros
         y=alt.Y('Vuelos:Q', title="Nº de Vuelos", axis=alt.Axis(tickMinStep=1, format='d')),
         tooltip=['País de Origen', 'Vuelos']
     ).properties(height=500)
     st.altair_chart(chart_paises, use_container_width=True)
 
 with c2:
-    st.subheader("☁️ Aeronaves agrupadas por altitud de vuelo")
+    st.subheader("☁️ Aeronaves por altitud de vuelo")
     if not df_now.empty:
         df_now['alt_low'] = (df_now['baro_altitude'] // 1000) * 1000
         df_actual = df_now.groupby('alt_low').size().reset_index(name='Aeronaves')
@@ -132,7 +138,6 @@ with c2:
             y=alt.Y('Rango:N', 
                     sort=alt.EncodingSortField(field="alt_low", order="descending"), 
                     title="Altitud"),
-            # axis=alt.Axis(format='d') evita que salgan 0.5, 1.5 aeronaves
             x=alt.X('Aeronaves:Q', 
                     title="Nº de Aeronaves", 
                     axis=alt.Axis(tickMinStep=1, format='d')),
@@ -140,21 +145,19 @@ with c2:
         ).properties(height=500)
 
         st.altair_chart(chart_alt, use_container_width=True)
-        
+
 # --- SECCIÓN 3: TRAYECTORIAS INCREMENTALES ---
 st.divider()
 st.header("🕵️ Rastreador de Trayectorias")
 
-# Capturar selección del mapa
 callsign_sel = ""
 if event and event.selection and event.selection.get("objects"):
     obj = list(event.selection["objects"].values())[0]
     callsign_sel = obj[0].get("callsign", "")
 
-vuelo_input = st.text_input("Introduce un Identificador (ej: IBE1234):", value=callsign_sel).upper()
+vuelo_input = st.text_input("Introduce un Identificador (disponibles en el mapa):", value=callsign_sel).upper()
 
 if vuelo_input:
-    # Consultamos la tabla fct_flight_tracks que ahora es INCREMENTAL
     df_track = con.execute(f"""
         SELECT latitude, longitude, baro_altitude, velocity_kmh, origin_country, time_position
         FROM fct_flight_tracks 
@@ -170,7 +173,6 @@ if vuelo_input:
 
         view_state = pdk.ViewState(latitude=df_track['latitude'].mean(), longitude=df_track['longitude'].mean(), zoom=5)
         
-        # Capa de la línea de ruta
         path_layer = pdk.Layer(
             "PathLayer",
             [{"path": df_track[['longitude', 'latitude']].values.tolist()}],
@@ -179,7 +181,6 @@ if vuelo_input:
             get_width=3000,
         )
         
-        # Capa del punto actual (avión)
         target_layer = pdk.Layer(
             "ScatterplotLayer",
             df_track.iloc[[-1]],
